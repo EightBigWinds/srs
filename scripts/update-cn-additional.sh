@@ -4,6 +4,7 @@ set -euo pipefail
 SOURCE_URL="https://static-file-global.353355.xyz/rules/cn-additional-list.txt"
 UPSTREAM_JSON_URL="https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/refs/heads/master/sing-box/non_ip/domestic.json"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+MANUAL_SOURCE_FILE="$ROOT_DIR/sing-box/source/cn-manual-services.txt"
 WORK_DIR="$ROOT_DIR/.work"
 OUT_SOURCE_DIR="$ROOT_DIR/sing-box/source"
 OUT_SRS_DIR="$ROOT_DIR/sing-box/srs"
@@ -23,9 +24,9 @@ SINGBOX_BIN="$SINGBOX_DIR/sing-box"
 curl -fsSL "$SOURCE_URL" -o "$TXT_TMP"
 curl -fsSL "$UPSTREAM_JSON_URL" -o "$UPSTREAM_JSON_TMP"
 
-python3 - <<'PY' "$TXT_TMP" "$UPSTREAM_JSON_TMP" "$JSON_TMP"
-import json, sys
-src_txt, upstream_json, dst = sys.argv[1], sys.argv[2], sys.argv[3]
+python3 - <<'PY' "$TXT_TMP" "$MANUAL_SOURCE_FILE" "$UPSTREAM_JSON_TMP" "$JSON_TMP"
+import json, os, sys
+src_txt, manual_txt, upstream_json, dst = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 seen = set()
 domains = []
 
@@ -36,9 +37,12 @@ def add(value):
     seen.add(value)
     domains.append(value)
 
-with open(src_txt, 'r', encoding='utf-8') as f:
-    for line in f:
-        add(line)
+for path in (src_txt, manual_txt):
+    if not path or not os.path.exists(path):
+        continue
+    with open(path, 'r', encoding='utf-8') as f:
+        for line in f:
+            add(line)
 
 with open(upstream_json, 'r', encoding='utf-8') as f:
     data = json.load(f)
